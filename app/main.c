@@ -2070,9 +2070,9 @@ static void ble_resp_data(void)
     uint16_t length = 0;
     uint16_t offset = 0;
     
-    while(data_recived_len>BLE_NUS_MAX_DATA_LEN)
+    while(data_recived_len>m_ble_nus_max_data_len)
     {
-        length = BLE_NUS_MAX_DATA_LEN;
+        length = m_ble_nus_max_data_len;
         NRF_LOG_INFO("1----data lenth %d \n",data_recived_len);
         NRF_LOG_HEXDUMP_DEBUG(data_recived_buf,64);
         do
@@ -2086,8 +2086,8 @@ static void ble_resp_data(void)
             }
             if (err_code == NRF_SUCCESS)
             {
-                data_recived_len -=BLE_NUS_MAX_DATA_LEN;
-                offset +=BLE_NUS_MAX_DATA_LEN;
+                data_recived_len -=m_ble_nus_max_data_len;
+                offset +=m_ble_nus_max_data_len;
             }
         } while (err_code == NRF_ERROR_RESOURCES);                
     }
