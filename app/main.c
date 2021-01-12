@@ -245,6 +245,9 @@
 #define BAT_LVL_ADDR					0x70000
 #endif
 
+#define BLE_GAP_DATA_LENGTH_DEFAULT     27          //!< The stack's default data length.
+#define BLE_GAP_DATA_LENGTH_MAX         251         //!< Maximum data length.
+
 BLE_NUS_DEF(m_nus, NRF_SDH_BLE_TOTAL_LINK_COUNT);                                   /**< BLE NUS service instance. */
 BLE_BAS_DEF(m_bas);    
 NRF_BLE_GATT_DEF(m_gatt);                                                           /**< GATT module instance. */
@@ -1682,6 +1685,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 
         case BLE_GAP_EVT_SEC_PARAMS_REQUEST:
             NRF_LOG_DEBUG("BLE_GAP_EVT_SEC_PARAMS_REQUEST");
+            nrf_ble_gatt_data_length_set(&m_gatt,m_conn_handle,BLE_GAP_DATA_LENGTH_DEFAULT);
             break;
 
         case BLE_GAP_EVT_PASSKEY_DISPLAY:
@@ -1714,6 +1718,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
                           *((uint8_t *)&p_ble_evt->evt.gap_evt.params.auth_status.kdist_own),
                           *((uint8_t *)&p_ble_evt->evt.gap_evt.params.auth_status.kdist_peer));
             bond_check_key_flag = AUTH_VALUE;
+            nrf_ble_gatt_data_length_set(&m_gatt,m_conn_handle,BLE_GAP_DATA_LENGTH_MAX);
             break;
 
         default:
