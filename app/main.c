@@ -1719,7 +1719,6 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
                           *((uint8_t *)&p_ble_evt->evt.gap_evt.params.auth_status.kdist_own),
                           *((uint8_t *)&p_ble_evt->evt.gap_evt.params.auth_status.kdist_peer));
             bond_check_key_flag = AUTH_VALUE;
-            nrf_ble_gatt_data_length_set(&m_gatt,m_conn_handle,BLE_GAP_DATA_LENGTH_MAX);
             break;
 
         default:
