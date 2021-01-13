@@ -1010,6 +1010,7 @@ static void pm_evt_handler(pm_evt_t const * p_evt)
                 bak_buff[2] = VALUE_SECCESS;
                 send_stm_data(bak_buff,bak_buff[1]);
 #endif
+                nrf_ble_gatt_data_length_set(&m_gatt,m_conn_handle,BLE_GAP_DATA_LENGTH_MAX);
                 NRF_LOG_INFO("Link secured. Role: %d. conn_handle: %d, Procedure: %d",
                              ble_conn_state_role(p_evt->conn_handle),
                              p_evt->conn_handle,
@@ -1652,6 +1653,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
             m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
             err_code = nrf_ble_qwr_conn_handle_assign(&m_qwr, m_conn_handle);
             APP_ERROR_CHECK(err_code);
+            nrf_ble_gatt_data_length_set(&m_gatt,m_conn_handle,BLE_GAP_DATA_LENGTH_DEFAULT);
             // Start Security Request timer.
         } break;
 
@@ -1685,7 +1687,6 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 
         case BLE_GAP_EVT_SEC_PARAMS_REQUEST:
             NRF_LOG_DEBUG("BLE_GAP_EVT_SEC_PARAMS_REQUEST");
-            nrf_ble_gatt_data_length_set(&m_gatt,m_conn_handle,BLE_GAP_DATA_LENGTH_DEFAULT);
             break;
 
         case BLE_GAP_EVT_PASSKEY_DISPLAY:
