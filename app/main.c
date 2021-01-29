@@ -128,9 +128,11 @@
 #define READ_I2C_DATA               	3
 
 #define BLE_DEF                         0
-#define BLE_ON                          1
-#define BLE_OFF                         2
-#define BLE_CHANGE_STA                  3
+#define BLE_ON_ALWAYS                   1
+#define BLE_OFF_ALWAYS                  2
+#define BLE_DISCON                      3
+#define BLE_ON_TEMPO                    5                         
+#define BLE_OFF_TEMPO                   6     
 
 #define NO_CHARGE                       0
 #define USB_CHARGE                      1
@@ -904,7 +906,7 @@ void m_1s_timeout_hander(void * p_context)
 		flag_ble = 1;
 		bak_buff[0] = UART_CMD_CTL_BLE;
         bak_buff[1] = 0x01;
-        bak_buff[2] = ((ble_status_flag-1)^1);
+        bak_buff[2] = ble_status_flag;
 		send_stm_data(bak_buff,bak_buff[1]);
 	}
 #endif
@@ -1384,7 +1386,7 @@ static void nus_data_handler(ble_nus_evt_t * p_evt)
                   && data_recived_buf[2] == 0x07 && data_recived_buf[3] == 0x1
                   && data_recived_buf[4] == 0x03)
             {
-                ble_adv_switch_flag = BLE_OFF;
+                ble_adv_switch_flag = BLE_OFF_ALWAYS;
                 ctl_channel_flag = BLE_CHANNEL;
                 return;
             }
@@ -1905,18 +1907,29 @@ void uart_event_handle(app_uart_evt_t * p_event)
                 switch(data_array[4])
                 {
                     case UART_CMD_CTL_BLE:
-                        if(BLE_ON == data_array[6])
+                        if(BLE_ON_ALWAYS == data_array[6])
                         {
-							ble_adv_switch_flag = BLE_ON;
-							NRF_LOG_INFO("RCV ble ON.");
-                        }else if(0 == data_array[6])
+							ble_adv_switch_flag = BLE_ON_ALWAYS;
+							NRF_LOG_INFO("RCV ble always ON.");
+                        }else if((BLE_OFF_ALWAYS == data_array[6])||(0 == data_array[6]))
                         {
-							ble_adv_switch_flag = BLE_OFF;
-							NRF_LOG_INFO("RCV ble OFF.");
-						}else if(BLE_CHANGE_STA == data_array[6])
+							ble_adv_switch_flag = BLE_OFF_ALWAYS;
+							NRF_LOG_INFO("RCV ble always OFF.");
+						}else if(BLE_DISCON == data_array[6])
                         {
-                            ble_conn_flag = BLE_CHANGE_STA;
-							NRF_LOG_INFO("RCV ble flag DIS.");
+                            ble_conn_flag = BLE_DISCON;
+							NRF_LOG_INFO("RCV ble flag disconnect.");
+                        }else if(BLE_ON_TEMPO == data_array[6])
+                        {
+                            ble_conn_flag = BLE_ON_TEMPO;
+                            NRF_LOG_INFO("RCV ble flag start adv flag.");
+                        }else if(BLE_OFF_TEMPO == data_array[6])
+                        {
+                            ble_conn_flag = BLE_OFF_TEMPO;
+                            NRF_LOG_INFO("RCV ble flag stop adv flag.");
+                        }else{
+                            
+                            NRF_LOG_INFO("Receive flag is %d \n",data_array[6]);
                         }
                         ctl_channel_flag = UART_CHANNEL;
                         break;
@@ -2149,7 +2162,7 @@ static void idle_state_handle(void)
 {
     ret_code_t err_code;
     
-    if((BLE_DEF == ble_adv_switch_flag)||(BLE_ON == ble_adv_switch_flag))
+    if((BLE_DEF == ble_adv_switch_flag)||(BLE_ON_ALWAYS == ble_adv_switch_flag))
     {
         if(bond_check_key_flag != AUTH_VALUE)
         {
@@ -2352,18 +2365,18 @@ static void ctl_advertising(void)
     if(((0xFF == data[0])&&(0xFF == data[1])&&(0xFF == data[2])&&(0xFF == data[3]))||
         ((0xFE == data[0])&&(0x0F == data[1])&&(0xDC == data[2])&&(0xBA == data[3])))
     {
-        ble_status_flag = BLE_ON;
+        ble_status_flag = BLE_ON_ALWAYS;
         advertising_start();
         NRF_LOG_INFO("1-Start adv.\n");       
     }
     else if((0xAB == data[0])&&(0xAB == data[1])&&(0xAB == data[2])&&(0xAB == data[3]))
     { 
-        ble_status_flag = BLE_OFF;        
+        ble_status_flag = BLE_OFF_ALWAYS;        
         NRF_LOG_INFO("2-No Adv.\n");
     }
     else
     {
-        ble_status_flag = BLE_ON;
+        ble_status_flag = BLE_ON_ALWAYS;
         advertising_start();
         NRF_LOG_INFO("3-Start adv.\n");
     }
@@ -2432,12 +2445,24 @@ static void manage_bat_level(void *p_event_data,uint16_t event_size)
 		NRF_LOG_INFO("buff0- %d,buff1- %d,buff2- %d,buff3- %d",data[0],data[1],data[2],data[3]);					
     }
 }
+static void check_advertising_stop(void)
+{
+    if(ble_evt_flag != BLE_DISCONNECT || ble_evt_flag != BLE_DEFAULT)
+    {
+        sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
+        m_conn_handle = BLE_CONN_HANDLE_INVALID;
+        ble_evt_flag = BLE_DISCONNECT;
+        NRF_LOG_INFO("Ctl disconnect.");
+    }
+    nrf_delay_ms(1000);
+    advertising_stop();
+}
 static void ble_ctl_process(void *p_event_data,uint16_t event_size)
 {
-    if(BLE_OFF == ble_adv_switch_flag)
+    if(BLE_OFF_ALWAYS == ble_adv_switch_flag)
     {
         ble_adv_switch_flag = BLE_DEF;
-        if(BLE_ON == ble_status_flag)
+        if(BLE_ON_ALWAYS == ble_status_flag)
         {
 #ifdef UART_TRANS
             bak_buff[0] = UART_CMD_BLE_CON_STA;
@@ -2446,19 +2471,11 @@ static void ble_ctl_process(void *p_event_data,uint16_t event_size)
             send_stm_data(bak_buff,bak_buff[1]);
 #endif    		
             flash_data_write(BLE_CTL_ADDR,m_data);
-            ble_status_flag = BLE_OFF;
+            ble_status_flag = BLE_OFF_ALWAYS;
             NRF_LOG_INFO("1-Ble disconnect.\n");
             NRF_LOG_INFO("BLE status is %d",ble_evt_flag);
 			
-            if(ble_evt_flag != BLE_DISCONNECT || ble_evt_flag != BLE_DEFAULT)
-            {
-                sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
-                m_conn_handle = BLE_CONN_HANDLE_INVALID;
-                ble_evt_flag = BLE_DISCONNECT;
-                NRF_LOG_INFO("Ctl connect.");
-            }
-            nrf_delay_ms(1000);
-            advertising_stop();
+            check_advertising_stop();
         }
         else 
         {
@@ -2467,14 +2484,14 @@ static void ble_ctl_process(void *p_event_data,uint16_t event_size)
 #endif                
         }
     }
-    else if(BLE_ON == ble_adv_switch_flag)
+    else if(BLE_ON_ALWAYS == ble_adv_switch_flag)
     {
         ble_adv_switch_flag = BLE_DEF;
-        if(BLE_OFF == ble_status_flag)
+        if(BLE_OFF_ALWAYS == ble_status_flag)
         {
             advertising_start();
             flash_data_write(BLE_CTL_ADDR,m_data2);
-            ble_status_flag = BLE_ON;
+            ble_status_flag = BLE_ON_ALWAYS;
             NRF_LOG_INFO("2-Start advertisement.\n");
         }
         else
@@ -2484,7 +2501,7 @@ static void ble_ctl_process(void *p_event_data,uint16_t event_size)
 #endif          
         }
     }
-	if(BLE_CHANGE_STA == ble_conn_flag)
+	if(BLE_DISCON == ble_conn_flag)
     {
         if(ble_evt_flag != BLE_DISCONNECT || ble_evt_flag != BLE_DEFAULT)
         {
@@ -2496,6 +2513,22 @@ static void ble_ctl_process(void *p_event_data,uint16_t event_size)
         {
 			ble_conn_flag = BLE_DEF;
 		}
+    }else if(BLE_ON_TEMPO == ble_conn_flag)
+    {
+        if((BLE_OFF_TEMPO == ble_status_flag)||(BLE_OFF_ALWAYS == ble_status_flag))
+        {
+            advertising_start();
+            ble_status_flag = BLE_ON_TEMPO;
+        }
+        ble_conn_flag = BLE_DEF;
+    }else if(BLE_OFF_TEMPO == ble_conn_flag)
+    {
+        if((BLE_ON_TEMPO == ble_status_flag)||(BLE_ON_ALWAYS == ble_status_flag))
+        {
+            check_advertising_stop();
+            ble_status_flag = BLE_OFF_TEMPO;
+        }
+        ble_conn_flag = BLE_DEF;
     }
 }
 static void scheduler_init(void)
