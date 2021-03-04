@@ -906,7 +906,7 @@ void m_1s_timeout_hander(void * p_context)
 		flag_ble = 1;
 		bak_buff[0] = UART_CMD_CTL_BLE;
         bak_buff[1] = 0x01;
-        bak_buff[2] = ble_status_flag;
+        bak_buff[2] = ((ble_status_flag-1)^1);
 		send_stm_data(bak_buff,bak_buff[1]);
 	}
 #endif
