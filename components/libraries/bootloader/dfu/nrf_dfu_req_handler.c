@@ -60,6 +60,8 @@
 #include "nrf_crypto.h"
 #include "nrf_assert.h"
 #include "nrf_dfu_validation.h"
+#include "nrf_drv_uart.h"
+#include "nrf_dfu_serial.h"
 
 #define NRF_LOG_MODULE_NAME nrf_dfu_req_handler
 #include "nrf_log.h"
@@ -77,7 +79,7 @@ static uint32_t m_firmware_start_addr;          /**< Start address of the curren
 static uint32_t m_firmware_size_req;            /**< The size of the entire firmware image. Defined by the init command. */
 
 static nrf_dfu_observer_t m_observer;
-
+uint8_t ble_transport_flag = 0;
 
 static void on_dfu_complete(nrf_fstorage_evt_t * p_evt)
 {
@@ -278,7 +280,7 @@ static void on_cmd_obj_write_request(nrf_dfu_request_t * p_req, nrf_dfu_response
 
     NRF_LOG_DEBUG("Handle NRF_DFU_OP_OBJECT_WRITE (command)");
 
-    nrf_dfu_result_t ret_val;
+    nrf_dfu_result_t ret_val;    
 
     ret_val = nrf_dfu_validation_init_cmd_append(p_req->write.p_data, p_req->write.len);
     p_res->result = ext_err_code_handle(ret_val);
@@ -463,26 +465,58 @@ static void on_data_obj_create_request(nrf_dfu_request_t * p_req, nrf_dfu_respon
                  s_dfu_settings.progress.firmware_image_crc);
 }
 
-
 static void on_data_obj_write_request(nrf_dfu_request_t * p_req, nrf_dfu_response_t * p_res)
 {
+    uint8_t trans_persent[2];
+    
     NRF_LOG_DEBUG("Handle NRF_DFU_OP_OBJECT_WRITE (data)");
 
+    if(ble_transport_flag == 1)
+    {
+        ble_transport_flag = 2;
+        uart_battery_transport_init(); 
+    }
+    
     if (!nrf_dfu_validation_init_cmd_present())
     {
         /* Can't accept data because DFU isn't initialized by init command. */
         p_res->result = NRF_DFU_RES_CODE_OPERATION_NOT_PERMITTED;
+        if(ble_transport_flag == 2)
+        {
+            trans_persent[0] = 0x0C;
+            trans_persent[1] = 0x01;
+            battery_percent_send(trans_persent,2);
+        }
         return;
     }
 
+
+    
     uint32_t const data_object_offset = s_dfu_settings.progress.firmware_image_offset -
                                         s_dfu_settings.progress.firmware_image_offset_last;
-
+    
+    if(ble_transport_flag == 2)
+    {
+        trans_persent[0] = 0x0B;
+        trans_persent[1] = s_dfu_settings.progress.firmware_image_offset*100.0/m_firmware_size_req;
+        battery_percent_send(trans_persent,2);
+        if((trans_persent[1] >= 99)&&(trans_persent[1] < 0xff))
+        {
+            ble_transport_flag = 0;
+        }
+    }
+    
     if ((p_req->write.len + data_object_offset) > s_dfu_settings.progress.data_object_size)
     {
         /* Can't accept data because too much data has been received. */
         NRF_LOG_ERROR("Write request too long");
         p_res->result = NRF_DFU_RES_CODE_INVALID_PARAMETER;
+        if(ble_transport_flag == 2)
+        {
+            trans_persent[0] = 0x0C;
+            trans_persent[1] = 0x02;
+            battery_percent_send(trans_persent,2);
+        }
         return;
     }
 

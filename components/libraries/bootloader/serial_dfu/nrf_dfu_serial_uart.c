@@ -236,3 +236,32 @@ static uint32_t uart_dfu_transport_close(nrf_dfu_transport_t const * p_exception
     return NRF_SUCCESS;
 }
 
+uint32_t uart_battery_transport_init(void)
+{
+    uint32_t err_code = NRF_SUCCESS;
+    
+    nrf_drv_uart_config_t uart_config = NRF_DRV_UART_DEFAULT_CONFIG;
+
+    uart_config.pseltxd   = TX_PIN_NUMBER;
+    uart_config.pselrxd   = RX_PIN_NUMBER;
+    uart_config.pselcts   = CTS_PIN_NUMBER;
+    uart_config.pselrts   = RTS_PIN_NUMBER;
+    uart_config.hwfc      = NRF_DFU_SERIAL_UART_USES_HWFC ?
+                                NRF_UART_HWFC_ENABLED : NRF_UART_HWFC_DISABLED;
+    uart_config.p_context = &m_serial;
+
+    err_code =  nrf_drv_uart_init(&m_uart, &uart_config, uart_event_handler);
+    if (err_code != NRF_SUCCESS)
+    {
+        NRF_LOG_ERROR("Failed initializing uart");
+        return err_code;
+    }
+    
+    return err_code;
+}
+
+ret_code_t battery_percent_send(uint8_t const * p_data, uint32_t length)
+{
+    return nrf_drv_uart_tx(&m_uart, p_data, length);
+}
+

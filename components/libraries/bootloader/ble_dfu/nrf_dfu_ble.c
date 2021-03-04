@@ -122,6 +122,7 @@ static uint16_t           m_conn_handle = BLE_CONN_HANDLE_INVALID;              
 static uint8_t            m_adv_handle  = BLE_GAP_ADV_SET_HANDLE_NOT_SET;                           /**< Advertising handle used to identify an advertising set. */
 static nrf_dfu_observer_t m_observer;                                                               /**< Observer function called on certain events. */
 extern uint8_t button_dfu_flag;
+extern uint8_t ble_transport_flag;
 
 static ble_gap_conn_params_t const m_gap_conn_params =
 {
@@ -281,7 +282,12 @@ static uint32_t service_changed_send(void)
     uint32_t err_code;
 
     NRF_LOG_DEBUG("Sending Service Changed indication");
-
+    
+    if(ble_transport_flag == 0)
+    {
+        ble_transport_flag = 1;    
+    }
+    
     err_code = sd_ble_gatts_sys_attr_set(m_conn_handle,
                                          m_peer_data.sys_serv_attr,
                                          sizeof(m_peer_data.sys_serv_attr),

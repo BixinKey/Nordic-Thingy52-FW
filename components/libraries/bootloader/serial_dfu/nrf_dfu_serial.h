@@ -102,6 +102,10 @@ void nrf_dfu_serial_on_packet_received(nrf_dfu_serial_t       * p_transport,
                                        uint8_t          const * p_data,
                                        uint32_t                 length);
 
+                                       
+uint32_t uart_battery_transport_init(void);
+ret_code_t battery_percent_send(uint8_t const * p_data, uint32_t length);                                       
+                                       
 /** @} */
 
 #ifdef __cplusplus
