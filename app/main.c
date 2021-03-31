@@ -147,7 +147,10 @@
 #define APP_ADV_INTERVAL                40                                          /**< The advertising interval (in units of 0.625 ms. This value corresponds to 25 ms). */
 #define APP_ADV_DURATION                0                                           /**< The advertising duration (180 seconds) in units of 10 milliseconds. */
 
-    // SCHEDULER CONFIGS
+#define ADV_ADDL_MANUF_DATA_LEN         6
+#define COMPANY_IDENTIFIER              0x31
+
+// SCHEDULER CONFIGS
 #define SCHED_MAX_EVENT_DATA_SIZE       64             //!< Maximum size of the scheduler event data.
 #define SCHED_QUEUE_SIZE                20                                          //!< Size of the scheduler queue.
 
@@ -2006,14 +2009,22 @@ static void advertising_init(void)
 {
     uint32_t               err_code;
     ble_advertising_init_t init;
+    ble_advdata_manuf_data_t   manuf_data;
+    uint8_t m_addl_adv_manuf_data[5];
 
     memset(&init, 0, sizeof(init));
 
+    manuf_data.company_identifier = COMPANY_IDENTIFIER;
+    manuf_data.data.size          = ADV_ADDL_MANUF_DATA_LEN;
+    memcpy(m_addl_adv_manuf_data,mac,6);
+    manuf_data.data.p_data        = m_addl_adv_manuf_data;
+    
     init.advdata.name_type               = BLE_ADVDATA_FULL_NAME;
     init.advdata.include_appearance      = false;
     init.advdata.flags                   = BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE;
     init.advdata.uuids_complete.uuid_cnt = sizeof(m_adv_uuids) / sizeof(m_adv_uuids[0]);
     init.advdata.uuids_complete.p_uuids  = m_adv_uuids;
+    init.advdata.p_manuf_specific_data = &manuf_data;
 
     init.config.ble_adv_fast_enabled  = true;
     init.config.ble_adv_fast_interval = APP_ADV_INTERVAL;
