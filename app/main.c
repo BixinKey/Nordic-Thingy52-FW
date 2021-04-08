@@ -148,7 +148,7 @@
 #define APP_ADV_DURATION                0                                           /**< The advertising duration (180 seconds) in units of 10 milliseconds. */
 
 #define ADV_ADDL_MANUF_DATA_LEN         6
-#define COMPANY_IDENTIFIER              0x31
+#define COMPANY_IDENTIFIER              0xFE
 
 // SCHEDULER CONFIGS
 #define SCHED_MAX_EVENT_DATA_SIZE       64             //!< Maximum size of the scheduler event data.
