@@ -188,6 +188,7 @@
 #define PASSKEY_LENGTH                  6                                           /**< Length of pass-key received by the stack for display. */
 #define HEAD_NAME_LENGTH                1
 #define ADV_NAME_LENGTH                 5
+#define MAC_ADDRESS_LENGTH              6
 
 #define DEAD_BEEF                       0xDEADBEEF                                  /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
 
@@ -2010,13 +2011,13 @@ static void advertising_init(void)
     uint32_t               err_code;
     ble_advertising_init_t init;
     ble_advdata_manuf_data_t   manuf_data;
-    uint8_t m_addl_adv_manuf_data[5];
+    uint8_t m_addl_adv_manuf_data[MAC_ADDRESS_LENGTH];
 
     memset(&init, 0, sizeof(init));
 
     manuf_data.company_identifier = COMPANY_IDENTIFIER;
     manuf_data.data.size          = ADV_ADDL_MANUF_DATA_LEN;
-    memcpy(m_addl_adv_manuf_data,mac,6);
+    memcpy(m_addl_adv_manuf_data,mac,MAC_ADDRESS_LENGTH);
     manuf_data.data.p_data        = m_addl_adv_manuf_data;
     
     init.advdata.name_type               = BLE_ADVDATA_FULL_NAME;
