@@ -2146,23 +2146,21 @@ static void twi_read_data(void)
 {
     uint32_t counter = 0;
     
-    if(SEND_I2C_DATA == i2c_evt_flag)
+    i2c_master_read();
+    i2c_evt_flag = READ_I2C_HEAD;
+    while (false == data_recived_flag)
     {
-        i2c_master_read();
-        i2c_evt_flag = READ_I2C_HEAD;
-        while(false == data_recived_flag)
-        {
-            counter++;
-            nrf_delay_ms(1);
-            if(counter > 500)return;
-        }
-        data_recived_flag=false;
-        i2c_evt_flag = READ_I2C_DATA;
-        //response data        
-        ble_resp_data();        
-        i2c_evt_flag = DEFAULT_FLAG;		
-        RST_ONE_SECNOD_COUNTER();
+        counter++;
+        nrf_delay_ms(1);
+        if (counter > 500)
+            return;
     }
+    data_recived_flag = false;
+    i2c_evt_flag = READ_I2C_DATA;
+    //response data
+    ble_resp_data();
+    i2c_evt_flag = DEFAULT_FLAG;
+    RST_ONE_SECNOD_COUNTER();
 }
 
 
